@@ -59,23 +59,13 @@ function getImageFromMessage(message) {
   return null;
 }
 
-// 🧠 PROMPT IA
+// 🧠 PROMPT IA (simplificado)
 const SYSTEM_PROMPT = `
 Eres Abbi 😊 asesora inmobiliaria.
 
-OBJETIVO:
-Responder natural y llevar a WhatsApp.
-
-REGLAS:
-- No des precios
-- No inventes info
-
-RESPONDE EN JSON:
-{
- "reply": "mensaje",
- "qualified": true/false,
- "send_image": true/false
-}
+Responde natural y breve.
+No des precios.
+Lleva al usuario a WhatsApp.
 `;
 
 // ✅ VERIFICACIÓN
@@ -115,43 +105,45 @@ app.post("/webhook", async (req, res) => {
 
               console.log("📩 Mensaje:", userMessage);
 
-              const response = await openai.responses.create({
-                model: "gpt-4.1-mini",
-                input: [
-                  { role: "system", content: SYSTEM_PROMPT },
-                  { role: "user", content: userMessage },
-                ],
-              });
+              // 🔥 DETECTAR IMAGEN (ANTES DE IA)
+              const specificImage = getImageFromMessage(userMessage);
 
-              let ai;
+              let replyText = "¿Qué tipo de propiedad buscas? 😊";
+
+              // 🤖 IA SOLO PARA TEXTO
               try {
-                ai = JSON.parse(response.output_text);
-              } catch {
-                ai = {
-                  reply: "¿Qué tipo de propiedad buscas? 😊",
-                  qualified: false,
-                  send_image: false
-                };
+                const response = await openai.responses.create({
+                  model: "gpt-4.1-mini",
+                  input: [
+                    { role: "system", content: SYSTEM_PROMPT },
+                    { role: "user", content: userMessage },
+                  ],
+                });
+
+                replyText = response.output_text;
+              } catch (err) {
+                console.log("⚠️ Error IA, usando fallback");
               }
 
-              // 📸 IMAGEN
-              if (ai.send_image && PROPERTIES.length > 0) {
-                const img = getImageFromMessage(userMessage) || PROPERTIES[0].image;
-                await sendImageToMeta(senderId, img);
+              // 📸 IMAGEN (SI DETECTA MODELO)
+              if (specificImage && PROPERTIES.length > 0) {
+                await sendImageToMeta(senderId, specificImage);
+                replyText = "Claro 😊 aquí tienes ese modelo 👇";
               }
 
               // 📲 WHATSAPP
-              if (ai.qualified) {
-                ai.reply += `\n\n👉 ${WHATSAPP_LINK}`;
+              if (userMessage.toLowerCase().includes("cita") ||
+                  userMessage.toLowerCase().includes("información")) {
+                replyText += `\n\n👉 ${WHATSAPP_LINK}`;
               }
 
-              await sendMessageToMeta(senderId, ai.reply);
+              await sendMessageToMeta(senderId, replyText);
             }
           }
         }
 
         // =====================
-        // 💬 COMENTARIOS 🔥
+        // 💬 COMENTARIOS
         // =====================
         if (entry.changes) {
           for (const change of entry.changes) {
@@ -167,7 +159,7 @@ app.post("/webhook", async (req, res) => {
 
                 await replyToComment(
                   commentId,
-                  "¡Hola! 😊 Te enviamos info por mensaje privado 📩 Escríbenos al DM"
+                  "¡Hola! 😊 Escríbenos por mensaje privado y te damos toda la información 📩"
                 );
               }
             }
