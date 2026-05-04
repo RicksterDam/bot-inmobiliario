@@ -1,0 +1,42 @@
+[
+  {
+    "name": "modelo amate",
+    "keywords": ["amate"],
+    "image": "https://res.cloudinary.com/dkzp2bct8/image/upload/v1777922959/Modelo_Amate_o8qect.jpg"
+  },
+  {
+    "name": "modelo fede",
+    "keywords": ["fede"],
+    "image": "https://res.cloudinary.com/dkzp2bct8/image/upload/v1777922959/Modelo_Fede_lcpon4.jpg"
+  },
+  {
+    "name": "modelo gant",
+    "keywords": ["gant"],
+    "image": "https://res.cloudinary.com/dkzp2bct8/image/upload/v1777922958/Modelo_Gant_ldxklk.jpg"
+  },
+  {
+    "name": "modelo gea",
+    "keywords": ["gea"],
+    "image": "https://res.cloudinary.com/dkzp2bct8/image/upload/v1777922957/Modelo_Gea_mzcmbd.jpg"
+  },
+  {
+    "name": "modelo habancub",
+    "keywords": ["habancub"],
+    "image": "https://res.cloudinary.com/dkzp2bct8/image/upload/v1777922956/Modelo_Habancub_lk3oxc.jpg"
+  },
+  {
+    "name": "modelo haruto",
+    "keywords": ["haruto"],
+    "image": "https://res.cloudinary.com/dkzp2bct8/image/upload/v1771270379/WhatsApp_Image_2026-02-16_at_13.28.23_puoz4f.jpg"
+  },
+  {
+    "name": "modelo orquidia",
+    "keywords": ["orquidia", "orquídea"],
+    "image": "https://res.cloudinary.com/dkzp2bct8/image/upload/v1777922956/Modelo_Habancub_lk3oxc.jpg"
+  },
+  {
+    "name": "modelo tulipan",
+    "keywords": ["tulipan", "tulipán"],
+    "image": "https://res.cloudinary.com/dkzp2bct8/image/upload/v1777922954/Modelo_Tulipan_myuvkd.jpg"
+  }
+]
