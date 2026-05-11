@@ -44,15 +44,20 @@ fs.watchFile(path.join(__dirname, "properties.json"), () => {
   loadProperties();
 });
 
-// 🧠 DETECTAR IMAGEN
-function getImageFromMessage(message) {
+// 🧠 DETECTAR PROPIEDAD
+function getPropertyFromMessage(message) {
   const text = message.toLowerCase();
 
   for (const property of PROPERTIES) {
-    if (text.includes(property.name)) return property.image;
+
+    if (text.includes(property.name.toLowerCase())) {
+      return property;
+    }
 
     for (const keyword of property.keywords) {
-      if (text.includes(keyword)) return property.image;
+      if (text.includes(keyword.toLowerCase())) {
+        return property;
+      }
     }
   }
 
@@ -180,7 +185,7 @@ app.post("/webhook", async (req, res) => {
               console.log("📩 Mensaje:", userMessage);
 
               // 🔥 DETECTAR IMAGEN (ANTES DE IA)
-              const specificImage = getImageFromMessage(userMessage);
+              const property = getPropertyFromMessage(userMessage);
 
               let replyText = "¿Qué tipo de propiedad buscas? 😊";
 
@@ -200,9 +205,20 @@ app.post("/webhook", async (req, res) => {
               }
 
               // 📸 IMAGEN (SI DETECTA MODELO)
-              if (specificImage && PROPERTIES.length > 0) {
-                await sendImageToMeta(senderId, specificImage);
-                replyText = "Claro 😊 aquí tienes ese modelo 👇";
+              if (property) {
+
+                // 📸 ENVIAR IMAGEN
+                await sendImageToMeta(senderId, property.image);
+
+                // 💬 RESPUESTA
+                replyText =
+              `🏡 ${property.name}
+
+              💰 Precio: ${property.price}
+
+              📍 Ubicación: ${property.location}
+
+              ¿Te gustaría agendar una cita o conocer más detalles? 😊`;
               }
 
               // 📲 WHATSAPP
