@@ -127,8 +127,10 @@ app.post("/webhook", async (req, res) => {
 
     const body = req.body;
 
-    console.log("📩 BODY:", JSON.stringify(body, null, 2));
-
+fs.writeFileSync(
+  "debug.json",
+  JSON.stringify(body, null, 2)
+);
     if (body.object === "page") {
 
       for (const entry of body.entry || []) {
