@@ -30,6 +30,7 @@ let PROPERTIES = [];
 function loadProperties() {
   try {
     const filePath = path.join(__dirname, "properties.json");
+
     const data = fs.readFileSync(filePath, "utf-8");
 
     PROPERTIES = JSON.parse(data);
@@ -127,10 +128,11 @@ app.post("/webhook", async (req, res) => {
 
     const body = req.body;
 
-fs.writeFileSync(
-  "debug.json",
-  JSON.stringify(body, null, 2)
-);
+    fs.writeFileSync(
+      "debug.json",
+      JSON.stringify(body, null, 2)
+    );
+
     if (body.object === "page") {
 
       for (const entry of body.entry || []) {
@@ -147,25 +149,142 @@ fs.writeFileSync(
             if (!senderId) continue;
 
             // ======================
+            // 🎤 AUDIO
+            // ======================
+            if (event.message?.attachments) {
+
+              const attachment =
+                event.message.attachments[0];
+
+              if (attachment.type === "audio") {
+
+                console.log("🎤 Audio recibido");
+
+                const audioUrl =
+                  attachment.payload.url;
+
+                const audioResponse =
+                  await axios.get(audioUrl, {
+                    responseType: "stream",
+                  });
+
+                const audioPath =
+                  path.join(__dirname, "audio.mp4");
+
+                const writer =
+                  fs.createWriteStream(audioPath);
+
+                audioResponse.data.pipe(writer);
+
+                await new Promise((resolve) =>
+                  writer.on("finish", resolve)
+                );
+
+                // 🔥 TRANSCRIPCIÓN
+                const transcription =
+                  await openai.audio.transcriptions.create({
+                    file: fs.createReadStream(audioPath),
+                    model: "gpt-4o-mini-transcribe",
+                  });
+
+                const audioText =
+                  transcription.text;
+
+                console.log(
+                  "📝 Transcripción:",
+                  audioText
+                );
+
+                let replyText =
+                  "Gracias por tu audio 😊";
+
+                try {
+
+                  const response =
+                    await openai.responses.create({
+                      model: "gpt-4.1-mini",
+                      input: [
+                        {
+                          role: "system",
+                          content: SYSTEM_PROMPT,
+                        },
+                        {
+                          role: "user",
+                          content: audioText,
+                        },
+                      ],
+                    });
+
+                  replyText =
+                    response.output_text;
+
+                } catch (error) {
+
+                  console.log(
+                    "⚠️ Error IA Audio:",
+                    error.message
+                  );
+                }
+
+                await sendMessageToMeta(
+                  senderId,
+                  replyText
+                );
+
+                continue;
+              }
+            }
+
+            // ======================
             // 💬 TEXTO
             // ======================
             if (event.message?.text) {
 
-              const userMessage = event.message.text;
+              const userMessage =
+                event.message.text;
 
-              console.log("📩 Mensaje:", userMessage);
+              console.log(
+                "📩 Mensaje:",
+                userMessage
+              );
+
+              // ======================
+              // 🖼️ PRUEBA FOTO
+              // ======================
+              if (
+                userMessage.toLowerCase().includes("foto")
+              ) {
+
+                await sendMessageToMeta(
+                  senderId,
+                  "Aquí tienes una imagen 😊"
+                );
+
+                await sendImageToMeta(
+                  senderId,
+                  "https://images.unsplash.com/photo-1560185127-6ed189bf02f4"
+                );
+
+                continue;
+              }
 
               // ======================
               // 🏡 DETECTAR CASA
               // ======================
-              const property = getPropertyFromMessage(userMessage);
+              const property =
+                getPropertyFromMessage(
+                  userMessage
+                );
 
               // ======================
               // 🏡 SI DETECTA PROPIEDAD
               // ======================
               if (property) {
 
-                console.log("🏡 Propiedad encontrada:", property.name);
+                console.log(
+                  "🏡 Propiedad encontrada:",
+                  property.name
+                );
 
                 // 📸 ENVIAR IMAGEN
                 await sendImageToMeta(
@@ -214,7 +333,8 @@ fs.writeFileSync(
                     ],
                   });
 
-                replyText = response.output_text;
+                replyText =
+                  response.output_text;
 
               } catch (error) {
 
@@ -283,7 +403,10 @@ fs.writeFileSync(
 
   } catch (error) {
 
-    console.error("❌ ERROR GENERAL:", error);
+    console.error(
+      "❌ ERROR GENERAL:",
+      error
+    );
 
     res.sendStatus(200);
   }
@@ -379,7 +502,8 @@ async function replyToComment(commentId, text) {
 // ======================
 // 🚀 SERVER
 // ======================
-const PORT = process.env.PORT || 3000;
+const PORT =
+  process.env.PORT || 3000;
 
 app.listen(PORT, () => {
 
