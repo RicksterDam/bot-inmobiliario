@@ -148,60 +148,65 @@ app.post("/webhook", async (req, res) => {
 
             if (!senderId) continue;
 
-            // ======================
-            // 🎤 AUDIO
-            // ======================
-            if (event.message?.attachments) {
+                          // ======================
+                          // 🎤 AUDIO
+                          // ======================
+                          if (event.message?.attachments) {
+                const attachment = event.message.attachments[0];
 
-              const attachment =
-                event.message.attachments[0];
+                if (attachment.type === "audio") {
+                  console.log("🎤 Audio recibido");
 
-              if (attachment.type === "audio") {
+                  const audioUrl = attachment.payload.url;
 
-                console.log("🎤 Audio recibido");
-
-                const audioUrl =
-                  attachment.payload.url;
-
-                const audioResponse =
-                  await axios.get(audioUrl, {
+                  const audioResponse = await axios.get(audioUrl, {
                     responseType: "stream",
                   });
 
-                const audioPath =
-                  path.join(__dirname, "audio.mp4");
+                  const audioPath = path.join(__dirname, "audio.mp4");
+                  const writer = fs.createWriteStream(audioPath);
 
-                const writer =
-                  fs.createWriteStream(audioPath);
+                  audioResponse.data.pipe(writer);
 
-                audioResponse.data.pipe(writer);
-
-                await new Promise((resolve) =>
-                  writer.on("finish", resolve)
-                );
-
-                // 🔥 TRANSCRIPCIÓN
-                const transcription =
-                  await openai.audio.transcriptions.create({
-                    file: fs.createReadStream(audioPath),
-                    model: "gpt-4o-mini-transcribe",
+                  await new Promise((resolve, reject) => {
+                    writer.on("finish", resolve);
+                    writer.on("error", reject);
                   });
 
-                const audioText =
-                  transcription.text;
+                  const transcription = await openai.audio.transcriptions.create({
+                    file: fs.createReadStream(audioPath),
+                    model: "gpt-4o-mini-transcribe",
+                    language: "es",
+                    prompt:
+                      "El audio está en español mexicano. Puede mencionar casas, propiedades, fotos, ubicación, precios o nombres como Matre, Villahermosa, Tabasco.",
+                  });
 
-                console.log(
-                  "📝 Transcripción:",
-                  audioText
-                );
+                  const audioText = transcription.text;
 
-                let replyText =
-                  "Gracias por tu audio 😊";
+                  console.log("📝 Transcripción:", audioText);
 
-                try {
+                  // 🏡 Buscar propiedad usando el texto transcrito
+                  const property = getPropertyFromMessage(audioText);
 
-                  const response =
-                    await openai.responses.create({
+                  if (property) {
+                    console.log("🏡 Propiedad encontrada por audio:", property.name);
+
+                    await sendImageToMeta(senderId, property.image);
+
+                    const propertyMessage =
+              `🏡 ${property.name}
+
+              ¿Te gustaría agendar una cita o conocer más detalles? 😊`;
+
+                    await sendMessageToMeta(senderId, propertyMessage);
+
+                    continue;
+                  }
+
+                  let replyText = "Claro 😊 ¿me puedes decir qué propiedad te interesa?";
+
+                  try {
+                    const response = await openai.responses.create({
                       model: "gpt-4.1-mini",
                       input: [
                         {
@@ -215,25 +220,16 @@ app.post("/webhook", async (req, res) => {
                       ],
                     });
 
-                  replyText =
-                    response.output_text;
+                    replyText = response.output_text;
+                  } catch (error) {
+                    console.log("⚠️ Error IA Audio:", error.message);
+                  }
 
-                } catch (error) {
+                  await sendMessageToMeta(senderId, replyText);
 
-                  console.log(
-                    "⚠️ Error IA Audio:",
-                    error.message
-                  );
+                  continue;
                 }
-
-                await sendMessageToMeta(
-                  senderId,
-                  replyText
-                );
-
-                continue;
               }
-            }
 
             // ======================
             // 💬 TEXTO
