@@ -29,15 +29,23 @@ let PROPERTIES = [];
 // ======================
 function loadProperties() {
   try {
-    const filePath = path.join(__dirname, "properties.json");
 
-    const data = fs.readFileSync(filePath, "utf-8");
+    const filePath =
+      path.join(__dirname, "properties.json");
+
+    const data =
+      fs.readFileSync(filePath, "utf-8");
 
     PROPERTIES = JSON.parse(data);
 
     console.log("✅ Propiedades cargadas");
+
   } catch (error) {
-    console.error("❌ Error cargando propiedades:", error);
+
+    console.error(
+      "❌ Error cargando propiedades:",
+      error
+    );
   }
 }
 
@@ -46,35 +54,103 @@ loadProperties();
 // ======================
 // 🔄 RECARGA AUTOMÁTICA
 // ======================
-fs.watchFile(path.join(__dirname, "properties.json"), () => {
-  console.log("🔄 Propiedades actualizadas");
-  loadProperties();
-});
+fs.watchFile(
+  path.join(__dirname, "properties.json"),
+  () => {
+
+    console.log("🔄 Propiedades actualizadas");
+
+    loadProperties();
+  }
+);
 
 // ======================
 // 🧠 DETECTAR PROPIEDAD
 // ======================
 function getPropertyFromMessage(message) {
 
-  const text = message.toLowerCase();
+  const text =
+    message.toLowerCase();
 
   for (const property of PROPERTIES) {
 
     // detectar por nombre
-    if (text.includes(property.name.toLowerCase())) {
+    if (
+      text.includes(
+        property.name.toLowerCase()
+      )
+    ) {
       return property;
     }
 
-    // detectar por keywords
-    for (const keyword of property.keywords) {
+    // detectar keywords
+    for (const keyword of property.keywords || []) {
 
-      if (text.includes(keyword.toLowerCase())) {
+      if (
+        text.includes(
+          keyword.toLowerCase()
+        )
+      ) {
         return property;
       }
     }
   }
 
   return null;
+}
+
+// ======================
+// 💰 DETECTAR PRESUPUESTO
+// ======================
+function extractBudget(message) {
+
+  const text =
+    message
+      .replace(/,/g, "")
+      .toLowerCase();
+
+  // millones
+  const millionMatch =
+    text.match(
+      /(\d+(?:\.\d+)?)\s*(millones|millon|mdp)/i
+    );
+
+  if (millionMatch) {
+
+    return (
+      parseFloat(millionMatch[1]) *
+      1000000
+    );
+  }
+
+  // cantidades normales
+  const numberMatch =
+    text.match(/\$?(\d{5,9})/);
+
+  if (numberMatch) {
+
+    return parseInt(numberMatch[1]);
+  }
+
+  return null;
+}
+
+// ======================
+// 🏡 BUSCAR POR PRESUPUESTO
+// ======================
+function getPropertiesByBudget(budget) {
+
+  return PROPERTIES.filter(property => {
+
+    const numericPrice =
+      parseInt(
+        String(property.price)
+          .replace(/[^0-9]/g, "")
+      );
+
+    return numericPrice <= budget;
+
+  }).slice(0, 3);
 }
 
 // ======================
@@ -86,66 +162,45 @@ Eres Abbi 😊 asesora inmobiliaria virtual de Abbita.
 Habla de forma humana, amable y profesional.
 
 Tu objetivo es:
-
-* ayudar
-* perfilar al cliente
-* generar citas
-* conectar con un asesor humano
+- ayudar
+- perfilar al cliente
+- generar citas
+- conectar con un asesor humano
 
 Reglas IMPORTANTES:
-
-* NO inventes información.
-* NO supongas precios, mensualidades, enganches, tasas o promociones.
-* Si no tienes información suficiente o exacta, dilo claramente.
-* Si el cliente pide precios, mensualidades, casas sin enganche o financiamiento y no tienes datos concretos, responde que un asesor humano le dará la información exacta.
-* NO repitas las mismas preguntas.
-* NO insistas demasiado.
-* Responde de forma corta, clara y natural.
-* Todas las propiedades están en Villahermosa, Tabasco.
+- NO inventes información.
+- NO supongas precios, mensualidades, enganches, tasas o promociones.
+- Si no tienes información suficiente o exacta, dilo claramente.
+- Si el cliente pide precios, mensualidades, casas sin enganche o financiamiento y no tienes datos concretos, responde que un asesor humano le dará la información exacta.
+- NO repitas las mismas preguntas.
+- NO insistas demasiado.
+- Responde de forma corta, clara y natural.
+- Todas las propiedades están en Villahermosa, Tabasco.
 
 IMPORTANTE SOBRE MODELOS DE CASAS:
+- Si el cliente pregunta por un modelo de casa, primero pregunta si conoce el nombre exacto del modelo.
+- Si el cliente NO conoce el nombre del modelo, pregunta su presupuesto aproximado para buscar opciones similares.
+- Si el cliente tampoco tiene presupuesto, NO seguir preguntando lo mismo.
+- En ese caso ofrece conectar con un asesor humano.
 
-* Si el cliente pregunta por un modelo de casa, primero pregunta si conoce el nombre exacto del modelo.
-* Si el cliente NO conoce el nombre del modelo, pregunta su presupuesto aproximado para buscar opciones similares.
-* Si el cliente tampoco tiene presupuesto, NO seguir preguntando lo mismo.
-* En ese caso ofrece conectar al cliente con un asesor humano.
+IMPORTANTE SOBRE PRESUPUESTOS:
+- Si el cliente menciona un presupuesto aproximado, usa SOLO propiedades reales disponibles.
+- NO inventes propiedades.
+- Si no hay opciones disponibles dentro del presupuesto, dilo claramente.
+- Nunca inventes mensualidades ni financiamientos.
 
 IMPORTANTE:
-
-* Nunca hagas más de 2 preguntas seguidas para perfilar.
-* Si después de 2 preguntas no tienes suficiente información, ofrece contacto con asesor humano.
+- Nunca hagas más de 2 preguntas seguidas para perfilar.
+- Si después de 2 preguntas no tienes suficiente información, ofrece contacto con asesor humano.
 
 Cuando falte información exacta usa respuestas como:
-
-* “Para darte información correcta sobre mensualidades o casas sin enganche, un asesor puede ayudarte mejor 😊”
-* “No quiero darte información incorrecta. Un asesor puede explicarte opciones y costos reales.”
-* “Las mensualidades y requisitos cambian según la propiedad y perfil del cliente. Te puedo conectar con un asesor.”
+- “Para darte información correcta sobre mensualidades o casas sin enganche, un asesor puede ayudarte mejor 😊”
+- “No quiero darte información incorrecta. Un asesor puede explicarte opciones y costos reales.”
+- “Las mensualidades y requisitos cambian según la propiedad y perfil del cliente. Te puedo conectar con un asesor.”
 
 Si el cliente no sabe presupuesto o zona:
-
-* NO seguir preguntando lo mismo.
-* Ofrecer directamente contacto con asesor.
-
-Ejemplos:
-
-Cliente:
-“¿Cuánto pagaría por una casa sin enganche?”
-
-Respuesta correcta:
-“Las mensualidades dependen de la propiedad y del perfil de crédito 😊 Para no darte información incorrecta, un asesor puede explicarte opciones reales y cuánto pagarías aproximadamente. ¿Te gustaría que te contacte uno?”
-
-Cliente:
-“Quiero información de un modelo de casa.”
-
-Respuesta correcta:
-“Claro 😊 ¿Conoces el nombre exacto del modelo que te interesa?”
-
-Si no conoce el modelo:
-“Perfecto 😊 ¿Tienes un presupuesto aproximado? Así puedo buscar opciones similares para ti.”
-
-Si no tiene presupuesto:
-“No te preocupes 😊 Un asesor puede ayudarte a encontrar opciones según lo que buscas y explicarte mejor los modelos disponibles. ¿Te gustaría que te contacte uno?”
-
+- NO seguir preguntando lo mismo.
+- Ofrecer directamente contacto con asesor.
 `;
 
 // ======================
@@ -153,15 +208,27 @@ Si no tiene presupuesto:
 // ======================
 app.get("/webhook", (req, res) => {
 
-  const mode = req.query["hub.mode"];
-  const token = req.query["hub.verify_token"];
-  const challenge = req.query["hub.challenge"];
+  const mode =
+    req.query["hub.mode"];
 
-  if (mode === "subscribe" && token === VERIFY_TOKEN) {
+  const token =
+    req.query["hub.verify_token"];
 
-    console.log("✅ WEBHOOK VERIFICADO");
+  const challenge =
+    req.query["hub.challenge"];
 
-    return res.status(200).send(challenge);
+  if (
+    mode === "subscribe" &&
+    token === VERIFY_TOKEN
+  ) {
+
+    console.log(
+      "✅ WEBHOOK VERIFICADO"
+    );
+
+    return res
+      .status(200)
+      .send(challenge);
 
   } else {
 
@@ -194,92 +261,10 @@ app.post("/webhook", async (req, res) => {
 
           for (const event of entry.messaging) {
 
-            const senderId = event.sender?.id;
+            const senderId =
+              event.sender?.id;
 
             if (!senderId) continue;
-
-                          // ======================
-                          // 🎤 AUDIO
-                          // ======================
-                          if (event.message?.attachments) {
-                const attachment = event.message.attachments[0];
-
-                if (attachment.type === "audio") {
-                  console.log("🎤 Audio recibido");
-
-                  const audioUrl = attachment.payload.url;
-
-                  const audioResponse = await axios.get(audioUrl, {
-                    responseType: "stream",
-                  });
-
-                  const audioPath = path.join(__dirname, "audio.mp4");
-                  const writer = fs.createWriteStream(audioPath);
-
-                  audioResponse.data.pipe(writer);
-
-                  await new Promise((resolve, reject) => {
-                    writer.on("finish", resolve);
-                    writer.on("error", reject);
-                  });
-
-                  const transcription = await openai.audio.transcriptions.create({
-                    file: fs.createReadStream(audioPath),
-                    model: "gpt-4o-mini-transcribe",
-                    language: "es",
-                    prompt:
-                      "El audio está en español mexicano. Puede mencionar casas, propiedades, fotos, ubicación, precios o nombres como Matre, Villahermosa, Tabasco.",
-                  });
-
-                  const audioText = transcription.text;
-
-                  console.log("📝 Transcripción:", audioText);
-
-                  // 🏡 Buscar propiedad usando el texto transcrito
-                  const property = getPropertyFromMessage(audioText);
-
-                  if (property) {
-                    console.log("🏡 Propiedad encontrada por audio:", property.name);
-
-                    await sendImageToMeta(senderId, property.image);
-
-                    const propertyMessage =
-              `🏡 ${property.name}
-
-              ¿Te gustaría agendar una cita o conocer más detalles? 😊`;
-
-                    await sendMessageToMeta(senderId, propertyMessage);
-
-                    continue;
-                  }
-
-                  let replyText = "Claro 😊 ¿me puedes decir qué propiedad te interesa?";
-
-                  try {
-                    const response = await openai.responses.create({
-                      model: "gpt-4.1-mini",
-                      input: [
-                        {
-                          role: "system",
-                          content: SYSTEM_PROMPT,
-                        },
-                        {
-                          role: "user",
-                          content: audioText,
-                        },
-                      ],
-                    });
-
-                    replyText = response.output_text;
-                  } catch (error) {
-                    console.log("⚠️ Error IA Audio:", error.message);
-                  }
-
-                  await sendMessageToMeta(senderId, replyText);
-
-                  continue;
-                }
-              }
 
             // ======================
             // 💬 TEXTO
@@ -293,26 +278,6 @@ app.post("/webhook", async (req, res) => {
                 "📩 Mensaje:",
                 userMessage
               );
-
-              // ======================
-              // 🖼️ PRUEBA FOTO
-              // ======================
-              if (
-                userMessage.toLowerCase().includes("foto")
-              ) {
-
-                await sendMessageToMeta(
-                  senderId,
-                  "Aquí tienes una imagen 😊"
-                );
-
-                await sendImageToMeta(
-                  senderId,
-                  "https://images.unsplash.com/photo-1560185127-6ed189bf02f4"
-                );
-
-                continue;
-              }
 
               // ======================
               // 🏡 DETECTAR CASA
@@ -333,10 +298,13 @@ app.post("/webhook", async (req, res) => {
                 );
 
                 // 📸 ENVIAR IMAGEN
-                await sendImageToMeta(
-                  senderId,
-                  property.image
-                );
+                if (property.image) {
+
+                  await sendImageToMeta(
+                    senderId,
+                    property.image
+                  );
+                }
 
                 // 💬 RESPUESTA
                 const propertyMessage =
@@ -354,6 +322,78 @@ app.post("/webhook", async (req, res) => {
                 );
 
                 continue;
+              }
+
+              // ======================
+              // 💰 BUSCAR PRESUPUESTO
+              // ======================
+              const budget =
+                extractBudget(
+                  userMessage
+                );
+
+              if (budget) {
+
+                console.log(
+                  "💰 Presupuesto detectado:",
+                  budget
+                );
+
+                const properties =
+                  getPropertiesByBudget(
+                    budget
+                  );
+
+                if (
+                  properties.length > 0
+                ) {
+
+                  let response =
+`😊 Encontré algunas opciones dentro de tu presupuesto:
+
+`;
+
+                  for (const property of properties) {
+
+                    response +=
+`🏡 ${property.name}
+💰 ${property.price}
+📍 ${property.location}
+
+`;
+                  }
+
+                  response +=
+"¿Te gustaría conocer más detalles o agendar una cita? 😊";
+
+                  await sendMessageToMeta(
+                    senderId,
+                    response
+                  );
+
+                  // enviar imágenes
+                  for (const property of properties) {
+
+                    if (property.image) {
+
+                      await sendImageToMeta(
+                        senderId,
+                        property.image
+                      );
+                    }
+                  }
+
+                  continue;
+
+                } else {
+
+                  await sendMessageToMeta(
+                    senderId,
+                    "Por el momento no encontré propiedades dentro de ese presupuesto 😊 Pero un asesor puede ayudarte a revisar más opciones disponibles."
+                  );
+
+                  continue;
+                }
               }
 
               // ======================
@@ -394,8 +434,13 @@ app.post("/webhook", async (req, res) => {
               // 📲 WHATSAPP
               // ======================
               if (
-                userMessage.toLowerCase().includes("cita") ||
-                userMessage.toLowerCase().includes("asesor")
+                userMessage
+                  .toLowerCase()
+                  .includes("cita") ||
+
+                userMessage
+                  .toLowerCase()
+                  .includes("asesor")
               ) {
 
                 replyText +=
@@ -409,36 +454,6 @@ app.post("/webhook", async (req, res) => {
                 senderId,
                 replyText
               );
-            }
-          }
-        }
-
-        // ======================
-        // 💬 COMENTARIOS
-        // ======================
-        if (entry.changes) {
-
-          for (const change of entry.changes) {
-
-            if (change.field === "feed") {
-
-              const value = change.value;
-
-              if (
-                value.item === "comment" &&
-                value.comment_id
-              ) {
-
-                console.log(
-                  "💬 Comentario:",
-                  value.message
-                );
-
-                await replyToComment(
-                  value.comment_id,
-                  "¡Hola! 😊 Escríbenos por mensaje privado y con gusto te ayudamos 🏡"
-                );
-              }
             }
           }
         }
@@ -515,31 +530,6 @@ async function sendImageToMeta(psid, imageUrl) {
 
     console.error(
       "❌ Error imagen:",
-      error.response?.data || error.message
-    );
-  }
-}
-
-// ======================
-// 💬 RESPONDER COMENTARIO
-// ======================
-async function replyToComment(commentId, text) {
-
-  try {
-
-    await axios.post(
-      `https://graph.facebook.com/v18.0/${commentId}/comments`,
-      {
-        message: text,
-        access_token:
-          process.env.PAGE_ACCESS_TOKEN,
-      }
-    );
-
-  } catch (error) {
-
-    console.error(
-      "❌ Error comentario:",
       error.response?.data || error.message
     );
   }
