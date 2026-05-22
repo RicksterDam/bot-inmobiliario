@@ -426,40 +426,46 @@ app.post(
                       "😊 Encontré algunas opciones dentro de tu presupuesto:"
                     );
 
-                    for (
-                      const property of properties
-                    ) {
+for (
+  const property of properties
+) {
 
-                      // ======================
-                      // 📸 IMAGEN
-                      // ======================
-                      if (
-                        property.image
-                      ) {
+  // ======================
+  // 📸 IMAGEN
+  // ======================
+  if (
+    property.image
+  ) {
 
-                        await sendImageToMeta(
-                          senderId,
-                          property.image
-                        );
-                      }
+    await sendImageToMeta(
+      senderId,
+      property.image
+    );
+  }
 
-                      // ======================
-                      // 💬 MENSAJE INDIVIDUAL
-                      // ======================
-                      const propertyMessage =
+  // ======================
+  // 💬 MENSAJE INDIVIDUAL
+  // ======================
+  const propertyMessage =
 `🏡 ${property.name}
 
 💰 ${property.price}
 
-📍 ${property.location}
+📍 ${property.location}`;
 
-¿Te gustaría conocer más detalles o agendar una cita? 😊`;
+  await sendMessageToMeta(
+    senderId,
+    propertyMessage
+  );
+}
 
-                      await sendMessageToMeta(
-                        senderId,
-                        propertyMessage
-                      );
-                    }
+// ======================
+// 💬 MENSAJE FINAL ÚNICO
+// ======================
+await sendMessageToMeta(
+  senderId,
+  "😊 ¿Te gustaría conocer más detalles o agendar una cita?"
+);
 
                     continue;
                   }
