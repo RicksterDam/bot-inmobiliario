@@ -4,6 +4,7 @@ import dotenv from "dotenv";
 import axios from "axios";
 import fs from "fs";
 import path from "path";
+import { handleWhatsApp } from "./whatsapp.js";
 import { fileURLToPath } from "url";
 
 dotenv.config();
@@ -313,6 +314,19 @@ app.post(
       if (
         body.object === "page"
       ) {
+
+        // ======================
+// 📲 WHATSAPP
+// ======================
+if (
+  body.object ===
+  "whatsapp_business_account"
+) {
+
+  await handleWhatsApp(
+    body
+  );
+}
 
         for (
           const entry of body.entry || []
