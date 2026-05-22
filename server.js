@@ -17,10 +17,14 @@ const openai = new OpenAI({
   apiKey: process.env.OPENAI_API_KEY,
 });
 
-const WHATSAPP_LINK = "https://wa.me/529932351715";
+const WHATSAPP_LINK =
+  "https://wa.me/529932351715";
 
-const __filename = fileURLToPath(import.meta.url);
-const __dirname = path.dirname(__filename);
+const __filename =
+  fileURLToPath(import.meta.url);
+
+const __dirname =
+  path.dirname(__filename);
 
 let PROPERTIES = [];
 
@@ -32,10 +36,16 @@ function loadProperties() {
   try {
 
     const filePath =
-      path.join(__dirname, "properties.json");
+      path.join(
+        __dirname,
+        "properties.json"
+      );
 
     const data =
-      fs.readFileSync(filePath, "utf-8");
+      fs.readFileSync(
+        filePath,
+        "utf-8"
+      );
 
     PROPERTIES =
       JSON.parse(data);
@@ -59,7 +69,10 @@ loadProperties();
 // 🔄 RECARGA AUTOMÁTICA
 // ======================
 fs.watchFile(
-  path.join(__dirname, "properties.json"),
+  path.join(
+    __dirname,
+    "properties.json"
+  ),
   () => {
 
     console.log(
@@ -73,12 +86,16 @@ fs.watchFile(
 // ======================
 // 🧠 DETECTAR PROPIEDAD
 // ======================
-function getPropertyFromMessage(message) {
+function getPropertyFromMessage(
+  message
+) {
 
   const text =
     message.toLowerCase();
 
-  for (const property of PROPERTIES) {
+  for (
+    const property of PROPERTIES
+  ) {
 
     // detectar nombre
     if (
@@ -125,13 +142,7 @@ function extractBudget(message) {
     text
   );
 
-  // ======================
-  // MILLONES
-  // ejemplos:
-  // 3 millones
-  // 2.5 millones
-  // 4 mdp
-  // ======================
+  // millones
   const millionMatch =
     text.match(
       /(\d+(?:\.\d+)?)\s*(millones|millon|mdp)/i
@@ -152,9 +163,7 @@ function extractBudget(message) {
     return amount;
   }
 
-  // ======================
-  // CANTIDADES NORMALES
-  // ======================
+  // cantidades normales
   const numberMatch =
     text.match(
       /\$?\s?(\d{6,9})/
@@ -179,25 +188,32 @@ function extractBudget(message) {
 }
 
 // ======================
-// 🏡 BUSCAR CASAS POR PRESUPUESTO
+// 🏡 BUSCAR CASAS
 // ======================
-function getPropertiesByBudget(budget) {
+function getPropertiesByBudget(
+  budget
+) {
 
-  return PROPERTIES.filter(property => {
+  return PROPERTIES.filter(
+    property => {
 
-    const numericPrice =
-      parseInt(
-        String(property.price)
-          .replace(/[^0-9]/g, "")
+      const numericPrice =
+        parseInt(
+          String(
+            property.price
+          ).replace(
+            /[^0-9]/g,
+            ""
+          )
+        );
+
+      return (
+        numericPrice >=
+          budget * 0.7 &&
+        numericPrice <= budget
       );
-
-    // rango cercano al presupuesto
-    return (
-      numericPrice >= budget * 0.7 &&
-      numericPrice <= budget
-    );
-
-  }).slice(0, 5);
+    }
+  ).slice(0, 5);
 }
 
 // ======================
@@ -236,280 +252,315 @@ Si el cliente pide mensualidades o financiamiento:
 // ======================
 // ✅ VERIFICAR WEBHOOK
 // ======================
-app.get("/webhook", (req, res) => {
+app.get(
+  "/webhook",
+  (req, res) => {
 
-  const mode =
-    req.query["hub.mode"];
+    const mode =
+      req.query["hub.mode"];
 
-  const token =
-    req.query["hub.verify_token"];
+    const token =
+      req.query[
+        "hub.verify_token"
+      ];
 
-  const challenge =
-    req.query["hub.challenge"];
+    const challenge =
+      req.query[
+        "hub.challenge"
+      ];
 
-  if (
-    mode === "subscribe" &&
-    token === VERIFY_TOKEN
-  ) {
+    if (
+      mode === "subscribe" &&
+      token === VERIFY_TOKEN
+    ) {
 
-    console.log(
-      "✅ WEBHOOK VERIFICADO"
-    );
+      console.log(
+        "✅ WEBHOOK VERIFICADO"
+      );
 
-    return res
-      .status(200)
-      .send(challenge);
+      return res
+        .status(200)
+        .send(challenge);
 
-  } else {
+    } else {
 
-    return res.sendStatus(403);
+      return res.sendStatus(403);
+    }
   }
-});
+);
 
 // ======================
 // 📩 WEBHOOK PRINCIPAL
 // ======================
-app.post("/webhook", async (req, res) => {
+app.post(
+  "/webhook",
+  async (req, res) => {
 
-  try {
+    try {
 
-    const body = req.body;
+      const body =
+        req.body;
 
-    fs.writeFileSync(
-      "debug.json",
-      JSON.stringify(body, null, 2)
-    );
+      fs.writeFileSync(
+        "debug.json",
+        JSON.stringify(
+          body,
+          null,
+          2
+        )
+      );
 
-    if (body.object === "page") {
-
-      for (
-        const entry of body.entry || []
+      if (
+        body.object === "page"
       ) {
 
-        if (entry.messaging) {
+        for (
+          const entry of body.entry || []
+        ) {
 
-          for (
-            const event of entry.messaging
+          if (
+            entry.messaging
           ) {
 
-            const senderId =
-              event.sender?.id;
+            for (
+              const event of entry.messaging
+            ) {
 
-            if (!senderId) continue;
+              const senderId =
+                event.sender?.id;
 
-            // ======================
-            // 💬 MENSAJES DE TEXTO
-            // ======================
-            if (event.message?.text) {
-
-              const userMessage =
-                event.message.text;
-
-              console.log(
-                "📩 Mensaje:",
-                userMessage
-              );
+              if (!senderId)
+                continue;
 
               // ======================
-              // 🏡 BUSCAR CASA EXACTA
+              // 💬 MENSAJES TEXTO
               // ======================
-              const property =
-                getPropertyFromMessage(
+              if (
+                event.message?.text
+              ) {
+
+                const userMessage =
+                  event.message.text;
+
+                console.log(
+                  "📩 Mensaje:",
                   userMessage
                 );
 
-              if (property) {
-
-                console.log(
-                  "🏡 Propiedad encontrada:",
-                  property.name
-                );
-
-                // imagen
-                if (property.image) {
-
-                  await sendImageToMeta(
-                    senderId,
-                    property.image
+                // ======================
+                // 🏡 DETECTAR CASA EXACTA
+                // ======================
+                const property =
+                  getPropertyFromMessage(
+                    userMessage
                   );
-                }
 
-                const propertyMessage =
+                if (property) {
+
+                  console.log(
+                    "🏡 Propiedad encontrada:",
+                    property.name
+                  );
+
+                  // imagen
+                  if (
+                    property.image
+                  ) {
+
+                    await sendImageToMeta(
+                      senderId,
+                      property.image
+                    );
+                  }
+
+                  // mensaje
+                  const propertyMessage =
 `🏡 ${property.name}
 
 💰 Precio: ${property.price}
 
 📍 Ubicación: ${property.location}
 
-¿Te gustaría agendar una cita o conocer más detalles? 😊`;
-
-                await sendMessageToMeta(
-                  senderId,
-                  propertyMessage
-                );
-
-                continue;
-              }
-
-              // ======================
-              // 💰 DETECTAR PRESUPUESTO
-              // ======================
-              const budget =
-                extractBudget(
-                  userMessage
-                );
-
-              // ======================
-              // 💰 SI HAY PRESUPUESTO
-              // ======================
-              if (budget) {
-
-                console.log(
-                  "💰 Presupuesto encontrado:",
-                  budget
-                );
-
-                const properties =
-                  getPropertiesByBudget(
-                    budget
-                  );
-
-                // ======================
-                // 🏡 SI HAY CASAS
-                // ======================
-                if (
-                  properties.length > 0
-                ) {
-
-                  let response =
-`😊 Encontré algunas opciones dentro de tu presupuesto:
-
-`;
-
-                  for (
-                    const property of properties
-                  ) {
-
-                    response +=
-`🏡 ${property.name}
-💰 ${property.price}
-📍 ${property.location}
-
-`;
-                  }
-
-                  response +=
-"¿Te gustaría conocer más detalles o agendar una cita? 😊";
+¿Te gustaría conocer más detalles o agendar una cita? 😊`;
 
                   await sendMessageToMeta(
                     senderId,
-                    response
+                    propertyMessage
                   );
-
-                  // enviar imágenes
-                  for (
-                    const property of properties
-                  ) {
-
-                    if (property.image) {
-
-                      await sendImageToMeta(
-                        senderId,
-                        property.image
-                      );
-                    }
-                  }
 
                   continue;
                 }
 
                 // ======================
-                // ❌ SIN RESULTADOS
+                // 💰 DETECTAR PRESUPUESTO
+                // ======================
+                const budget =
+                  extractBudget(
+                    userMessage
+                  );
+
+                // ======================
+                // 🏡 BUSCAR CASAS
+                // ======================
+                if (budget) {
+
+                  console.log(
+                    "💰 Presupuesto encontrado:",
+                    budget
+                  );
+
+                  const properties =
+                    getPropertiesByBudget(
+                      budget
+                    );
+
+                  // ======================
+                  // 🏡 SI HAY RESULTADOS
+                  // ======================
+                  if (
+                    properties.length > 0
+                  ) {
+
+                    await sendMessageToMeta(
+                      senderId,
+                      "😊 Encontré algunas opciones dentro de tu presupuesto:"
+                    );
+
+                    for (
+                      const property of properties
+                    ) {
+
+                      // ======================
+                      // 📸 IMAGEN
+                      // ======================
+                      if (
+                        property.image
+                      ) {
+
+                        await sendImageToMeta(
+                          senderId,
+                          property.image
+                        );
+                      }
+
+                      // ======================
+                      // 💬 MENSAJE INDIVIDUAL
+                      // ======================
+                      const propertyMessage =
+`🏡 ${property.name}
+
+💰 ${property.price}
+
+📍 ${property.location}
+
+¿Te gustaría conocer más detalles o agendar una cita? 😊`;
+
+                      await sendMessageToMeta(
+                        senderId,
+                        propertyMessage
+                      );
+                    }
+
+                    continue;
+                  }
+
+                  // ======================
+                  // ❌ SIN RESULTADOS
+                  // ======================
+                  await sendMessageToMeta(
+                    senderId,
+                    "Por el momento no encontré propiedades dentro de ese presupuesto 😊 Un asesor puede ayudarte a revisar más opciones disponibles."
+                  );
+
+                  continue;
+                }
+
+                // ======================
+                // 🤖 IA
+                // ======================
+                let replyText =
+                  "😊 ¿Tienes algún presupuesto aproximado o algún modelo de casa que te interese?";
+
+                try {
+
+                  const response =
+                    await openai.responses.create({
+                      model:
+                        "gpt-4.1-mini",
+                      input: [
+                        {
+                          role:
+                            "system",
+                          content:
+                            SYSTEM_PROMPT,
+                        },
+                        {
+                          role:
+                            "user",
+                          content:
+                            userMessage,
+                        },
+                      ],
+                    });
+
+                  replyText =
+                    response.output_text;
+
+                } catch (error) {
+
+                  console.log(
+                    "⚠️ Error IA:",
+                    error.message
+                  );
+                }
+
+                // ======================
+                // 📲 LINK ASESOR
+                // ======================
+                if (
+                  userMessage
+                    .toLowerCase()
+                    .includes(
+                      "asesor"
+                    ) ||
+
+                  userMessage
+                    .toLowerCase()
+                    .includes(
+                      "cita"
+                    )
+                ) {
+
+                  replyText +=
+`\n\n👉 ${WHATSAPP_LINK}`;
+                }
+
+                // ======================
+                // 📤 ENVIAR RESPUESTA
                 // ======================
                 await sendMessageToMeta(
                   senderId,
-                  "Por el momento no encontré propiedades dentro de ese presupuesto 😊 Un asesor puede ayudarte a revisar más opciones disponibles."
-                );
-
-                continue;
-              }
-
-              // ======================
-              // 🤖 IA SOLO SI NO HAY MATCH
-              // ======================
-              let replyText =
-                "😊 ¿Tienes algún presupuesto aproximado o algún modelo de casa que te interese?";
-
-              try {
-
-                const response =
-                  await openai.responses.create({
-                    model: "gpt-4.1-mini",
-                    input: [
-                      {
-                        role: "system",
-                        content: SYSTEM_PROMPT,
-                      },
-                      {
-                        role: "user",
-                        content: userMessage,
-                      },
-                    ],
-                  });
-
-                replyText =
-                  response.output_text;
-
-              } catch (error) {
-
-                console.log(
-                  "⚠️ Error IA:",
-                  error.message
+                  replyText
                 );
               }
-
-              // ======================
-              // 📲 LINK ASESOR
-              // ======================
-              if (
-                userMessage
-                  .toLowerCase()
-                  .includes("asesor") ||
-
-                userMessage
-                  .toLowerCase()
-                  .includes("cita")
-              ) {
-
-                replyText +=
-`\n\n👉 ${WHATSAPP_LINK}`;
-              }
-
-              // ======================
-              // 📤 ENVIAR RESPUESTA
-              // ======================
-              await sendMessageToMeta(
-                senderId,
-                replyText
-              );
             }
           }
         }
       }
+
+      res.sendStatus(200);
+
+    } catch (error) {
+
+      console.error(
+        "❌ ERROR GENERAL:",
+        error
+      );
+
+      res.sendStatus(200);
     }
-
-    res.sendStatus(200);
-
-  } catch (error) {
-
-    console.error(
-      "❌ ERROR GENERAL:",
-      error
-    );
-
-    res.sendStatus(200);
   }
-});
+);
 
 // ======================
 // 📤 ENVIAR MENSAJE
@@ -537,7 +588,8 @@ async function sendMessageToMeta(
 
     console.error(
       "❌ Error mensaje:",
-      error.response?.data || error.message
+      error.response?.data ||
+        error.message
     );
   }
 }
@@ -574,7 +626,8 @@ async function sendImageToMeta(
 
     console.error(
       "❌ Error imagen:",
-      error.response?.data || error.message
+      error.response?.data ||
+        error.message
     );
   }
 }
