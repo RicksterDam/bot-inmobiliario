@@ -28,6 +28,7 @@ let PROPERTIES = [];
 // 🔄 CARGAR PROPIEDADES
 // ======================
 function loadProperties() {
+
   try {
 
     const filePath =
@@ -36,9 +37,12 @@ function loadProperties() {
     const data =
       fs.readFileSync(filePath, "utf-8");
 
-    PROPERTIES = JSON.parse(data);
+    PROPERTIES =
+      JSON.parse(data);
 
-    console.log("✅ Propiedades cargadas");
+    console.log(
+      "✅ Propiedades cargadas"
+    );
 
   } catch (error) {
 
@@ -58,7 +62,9 @@ fs.watchFile(
   path.join(__dirname, "properties.json"),
   () => {
 
-    console.log("🔄 Propiedades actualizadas");
+    console.log(
+      "🔄 Propiedades actualizadas"
+    );
 
     loadProperties();
   }
@@ -74,23 +80,27 @@ function getPropertyFromMessage(message) {
 
   for (const property of PROPERTIES) {
 
-    // detectar por nombre
+    // detectar nombre
     if (
       text.includes(
         property.name.toLowerCase()
       )
     ) {
+
       return property;
     }
 
     // detectar keywords
-    for (const keyword of property.keywords || []) {
+    for (
+      const keyword of property.keywords || []
+    ) {
 
       if (
         text.includes(
           keyword.toLowerCase()
         )
       ) {
+
         return property;
       }
     }
@@ -106,10 +116,22 @@ function extractBudget(message) {
 
   const text =
     message
+      .toLowerCase()
       .replace(/,/g, "")
-      .toLowerCase();
+      .trim();
 
-  // millones
+  console.log(
+    "💰 Analizando presupuesto:",
+    text
+  );
+
+  // ======================
+  // MILLONES
+  // ejemplos:
+  // 3 millones
+  // 2.5 millones
+  // 4 mdp
+  // ======================
   const millionMatch =
     text.match(
       /(\d+(?:\.\d+)?)\s*(millones|millon|mdp)/i
@@ -117,26 +139,47 @@ function extractBudget(message) {
 
   if (millionMatch) {
 
-    return (
-      parseFloat(millionMatch[1]) *
-      1000000
+    const amount =
+      parseFloat(
+        millionMatch[1]
+      ) * 1000000;
+
+    console.log(
+      "✅ Presupuesto detectado:",
+      amount
     );
+
+    return amount;
   }
 
-  // cantidades normales
+  // ======================
+  // CANTIDADES NORMALES
+  // ======================
   const numberMatch =
-    text.match(/\$?(\d{5,9})/);
+    text.match(
+      /\$?\s?(\d{6,9})/
+    );
 
   if (numberMatch) {
 
-    return parseInt(numberMatch[1]);
+    const amount =
+      parseInt(
+        numberMatch[1]
+      );
+
+    console.log(
+      "✅ Presupuesto detectado:",
+      amount
+    );
+
+    return amount;
   }
 
   return null;
 }
 
 // ======================
-// 🏡 BUSCAR POR PRESUPUESTO
+// 🏡 BUSCAR CASAS POR PRESUPUESTO
 // ======================
 function getPropertiesByBudget(budget) {
 
@@ -148,9 +191,13 @@ function getPropertiesByBudget(budget) {
           .replace(/[^0-9]/g, "")
       );
 
-    return numericPrice <= budget;
+    // rango cercano al presupuesto
+    return (
+      numericPrice >= budget * 0.7 &&
+      numericPrice <= budget
+    );
 
-  }).slice(0, 3);
+  }).slice(0, 5);
 }
 
 // ======================
@@ -169,38 +216,21 @@ Tu objetivo es:
 
 Reglas IMPORTANTES:
 - NO inventes información.
+- NO inventes propiedades.
 - NO supongas precios, mensualidades, enganches, tasas o promociones.
+- NO preguntes zonas si el cliente ya dio presupuesto.
+- Si el cliente menciona presupuesto, muestra directamente opciones disponibles.
 - Si no tienes información suficiente o exacta, dilo claramente.
-- Si el cliente pide precios, mensualidades, casas sin enganche o financiamiento y no tienes datos concretos, responde que un asesor humano le dará la información exacta.
-- NO repitas las mismas preguntas.
+- NO repitas preguntas.
 - NO insistas demasiado.
-- Responde de forma corta, clara y natural.
+- Responde corto y natural.
 - Todas las propiedades están en Villahermosa, Tabasco.
 
-IMPORTANTE SOBRE MODELOS DE CASAS:
-- Si el cliente pregunta por un modelo de casa, primero pregunta si conoce el nombre exacto del modelo.
-- Si el cliente NO conoce el nombre del modelo, pregunta su presupuesto aproximado para buscar opciones similares.
-- Si el cliente tampoco tiene presupuesto, NO seguir preguntando lo mismo.
-- En ese caso ofrece conectar con un asesor humano.
+Si no hay propiedades disponibles:
+“Por el momento no encontré opciones dentro de ese presupuesto 😊 Un asesor puede ayudarte a revisar más alternativas.”
 
-IMPORTANTE SOBRE PRESUPUESTOS:
-- Si el cliente menciona un presupuesto aproximado, usa SOLO propiedades reales disponibles.
-- NO inventes propiedades.
-- Si no hay opciones disponibles dentro del presupuesto, dilo claramente.
-- Nunca inventes mensualidades ni financiamientos.
-
-IMPORTANTE:
-- Nunca hagas más de 2 preguntas seguidas para perfilar.
-- Si después de 2 preguntas no tienes suficiente información, ofrece contacto con asesor humano.
-
-Cuando falte información exacta usa respuestas como:
-- “Para darte información correcta sobre mensualidades o casas sin enganche, un asesor puede ayudarte mejor 😊”
-- “No quiero darte información incorrecta. Un asesor puede explicarte opciones y costos reales.”
-- “Las mensualidades y requisitos cambian según la propiedad y perfil del cliente. Te puedo conectar con un asesor.”
-
-Si el cliente no sabe presupuesto o zona:
-- NO seguir preguntando lo mismo.
-- Ofrecer directamente contacto con asesor.
+Si el cliente pide mensualidades o financiamiento:
+“Para darte información correcta sobre mensualidades o financiamiento, un asesor puede ayudarte mejor 😊”
 `;
 
 // ======================
@@ -252,14 +282,15 @@ app.post("/webhook", async (req, res) => {
 
     if (body.object === "page") {
 
-      for (const entry of body.entry || []) {
+      for (
+        const entry of body.entry || []
+      ) {
 
-        // ======================
-        // 💬 MENSAJES
-        // ======================
         if (entry.messaging) {
 
-          for (const event of entry.messaging) {
+          for (
+            const event of entry.messaging
+          ) {
 
             const senderId =
               event.sender?.id;
@@ -267,7 +298,7 @@ app.post("/webhook", async (req, res) => {
             if (!senderId) continue;
 
             // ======================
-            // 💬 TEXTO
+            // 💬 MENSAJES DE TEXTO
             // ======================
             if (event.message?.text) {
 
@@ -280,16 +311,13 @@ app.post("/webhook", async (req, res) => {
               );
 
               // ======================
-              // 🏡 DETECTAR CASA
+              // 🏡 BUSCAR CASA EXACTA
               // ======================
               const property =
                 getPropertyFromMessage(
                   userMessage
                 );
 
-              // ======================
-              // 🏡 SI DETECTA PROPIEDAD
-              // ======================
               if (property) {
 
                 console.log(
@@ -297,7 +325,7 @@ app.post("/webhook", async (req, res) => {
                   property.name
                 );
 
-                // 📸 ENVIAR IMAGEN
+                // imagen
                 if (property.image) {
 
                   await sendImageToMeta(
@@ -306,7 +334,6 @@ app.post("/webhook", async (req, res) => {
                   );
                 }
 
-                // 💬 RESPUESTA
                 const propertyMessage =
 `🏡 ${property.name}
 
@@ -325,17 +352,20 @@ app.post("/webhook", async (req, res) => {
               }
 
               // ======================
-              // 💰 BUSCAR PRESUPUESTO
+              // 💰 DETECTAR PRESUPUESTO
               // ======================
               const budget =
                 extractBudget(
                   userMessage
                 );
 
+              // ======================
+              // 💰 SI HAY PRESUPUESTO
+              // ======================
               if (budget) {
 
                 console.log(
-                  "💰 Presupuesto detectado:",
+                  "💰 Presupuesto encontrado:",
                   budget
                 );
 
@@ -344,6 +374,9 @@ app.post("/webhook", async (req, res) => {
                     budget
                   );
 
+                // ======================
+                // 🏡 SI HAY CASAS
+                // ======================
                 if (
                   properties.length > 0
                 ) {
@@ -353,7 +386,9 @@ app.post("/webhook", async (req, res) => {
 
 `;
 
-                  for (const property of properties) {
+                  for (
+                    const property of properties
+                  ) {
 
                     response +=
 `🏡 ${property.name}
@@ -372,7 +407,9 @@ app.post("/webhook", async (req, res) => {
                   );
 
                   // enviar imágenes
-                  for (const property of properties) {
+                  for (
+                    const property of properties
+                  ) {
 
                     if (property.image) {
 
@@ -384,23 +421,24 @@ app.post("/webhook", async (req, res) => {
                   }
 
                   continue;
-
-                } else {
-
-                  await sendMessageToMeta(
-                    senderId,
-                    "Por el momento no encontré propiedades dentro de ese presupuesto 😊 Pero un asesor puede ayudarte a revisar más opciones disponibles."
-                  );
-
-                  continue;
                 }
+
+                // ======================
+                // ❌ SIN RESULTADOS
+                // ======================
+                await sendMessageToMeta(
+                  senderId,
+                  "Por el momento no encontré propiedades dentro de ese presupuesto 😊 Un asesor puede ayudarte a revisar más opciones disponibles."
+                );
+
+                continue;
               }
 
               // ======================
-              // 🤖 RESPUESTA IA
+              // 🤖 IA SOLO SI NO HAY MATCH
               // ======================
               let replyText =
-                "¿Qué tipo de propiedad buscas? 😊";
+                "😊 ¿Tienes algún presupuesto aproximado o algún modelo de casa que te interese?";
 
               try {
 
@@ -431,16 +469,16 @@ app.post("/webhook", async (req, res) => {
               }
 
               // ======================
-              // 📲 WHATSAPP
+              // 📲 LINK ASESOR
               // ======================
               if (
                 userMessage
                   .toLowerCase()
-                  .includes("cita") ||
+                  .includes("asesor") ||
 
                 userMessage
                   .toLowerCase()
-                  .includes("asesor")
+                  .includes("cita")
               ) {
 
                 replyText +=
@@ -476,7 +514,10 @@ app.post("/webhook", async (req, res) => {
 // ======================
 // 📤 ENVIAR MENSAJE
 // ======================
-async function sendMessageToMeta(psid, text) {
+async function sendMessageToMeta(
+  psid,
+  text
+) {
 
   try {
 
@@ -504,7 +545,10 @@ async function sendMessageToMeta(psid, text) {
 // ======================
 // 🖼️ ENVIAR IMAGEN
 // ======================
-async function sendImageToMeta(psid, imageUrl) {
+async function sendImageToMeta(
+  psid,
+  imageUrl
+) {
 
   try {
 
