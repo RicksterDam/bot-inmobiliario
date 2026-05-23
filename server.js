@@ -311,22 +311,31 @@ app.post(
         )
       );
 
+      // ======================
+      // 📲 WHATSAPP
+      // ======================
+      if (
+        body.object ===
+        "whatsapp_business_account"
+      ) {
+
+        console.log(
+          "📲 Evento WhatsApp recibido"
+        );
+
+        await handleWhatsApp(
+          body
+        );
+
+        return res.sendStatus(200);
+      }
+
+      // ======================
+      // 📘 FACEBOOK MESSENGER
+      // ======================
       if (
         body.object === "page"
       ) {
-
-        // ======================
-// 📲 WHATSAPP
-// ======================
-if (
-  body.object ===
-  "whatsapp_business_account"
-) {
-
-  await handleWhatsApp(
-    body
-  );
-}
 
         for (
           const entry of body.entry || []
@@ -357,7 +366,7 @@ if (
                   event.message.text;
 
                 console.log(
-                  "📩 Mensaje:",
+                  "📩 Messenger:",
                   userMessage
                 );
 
@@ -376,7 +385,7 @@ if (
                     property.name
                   );
 
-                  // imagen
+                  // 📸 imagen
                   if (
                     property.image
                   ) {
@@ -387,7 +396,7 @@ if (
                     );
                   }
 
-                  // mensaje
+                  // 💬 mensaje
                   const propertyMessage =
 `🏡 ${property.name}
 
@@ -440,46 +449,40 @@ if (
                       "😊 Encontré algunas opciones dentro de tu presupuesto:"
                     );
 
-for (
-  const property of properties
-) {
+                    for (
+                      const property of properties
+                    ) {
 
-  // ======================
-  // 📸 IMAGEN
-  // ======================
-  if (
-    property.image
-  ) {
+                      // 📸 IMAGEN
+                      if (
+                        property.image
+                      ) {
 
-    await sendImageToMeta(
-      senderId,
-      property.image
-    );
-  }
+                        await sendImageToMeta(
+                          senderId,
+                          property.image
+                        );
+                      }
 
-  // ======================
-  // 💬 MENSAJE INDIVIDUAL
-  // ======================
-  const propertyMessage =
+                      // 💬 MENSAJE
+                      const propertyMessage =
 `🏡 ${property.name}
 
 💰 ${property.price}
 
 📍 ${property.location}`;
 
-  await sendMessageToMeta(
-    senderId,
-    propertyMessage
-  );
-}
+                      await sendMessageToMeta(
+                        senderId,
+                        propertyMessage
+                      );
+                    }
 
-// ======================
-// 💬 MENSAJE FINAL ÚNICO
-// ======================
-await sendMessageToMeta(
-  senderId,
-  "😊 ¿Te gustaría conocer más detalles o agendar una cita?"
-);
+                    // 💬 MENSAJE FINAL
+                    await sendMessageToMeta(
+                      senderId,
+                      "😊 ¿Te gustaría conocer más detalles o agendar una cita?"
+                    );
 
                     continue;
                   }
@@ -507,16 +510,19 @@ await sendMessageToMeta(
                     await openai.responses.create({
                       model:
                         "gpt-4.1-mini",
+
                       input: [
                         {
                           role:
                             "system",
+
                           content:
                             SYSTEM_PROMPT,
                         },
                         {
                           role:
                             "user",
+
                           content:
                             userMessage,
                         },
@@ -556,7 +562,7 @@ await sendMessageToMeta(
                 }
 
                 // ======================
-                // 📤 ENVIAR RESPUESTA
+                // 📤 RESPUESTA FINAL
                 // ======================
                 await sendMessageToMeta(
                   senderId,
@@ -566,6 +572,8 @@ await sendMessageToMeta(
             }
           }
         }
+
+        return res.sendStatus(200);
       }
 
       res.sendStatus(200);
@@ -577,7 +585,7 @@ await sendMessageToMeta(
         error
       );
 
-      res.sendStatus(200);
+      res.sendStatus(500);
     }
   }
 );
