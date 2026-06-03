@@ -7,6 +7,8 @@ import path from "path";
 import { handleWhatsApp } from "./whatsapp.js";
 import { fileURLToPath } from "url";
 
+import Fuse from "fuse.js";
+
 dotenv.config();
 
 const app = express();
@@ -29,6 +31,8 @@ const __dirname =
 
 let PROPERTIES = [];
 
+let fuse;
+
 // ======================
 // 🔄 CARGAR PROPIEDADES
 // ======================
@@ -50,6 +54,13 @@ function loadProperties() {
 
     PROPERTIES =
       JSON.parse(data);
+
+    // ✅ FUSE SEARCH
+    fuse = new Fuse(PROPERTIES, {
+      keys: ["name", "keywords"],
+      threshold: 0.4,
+      includeScore: true,
+    });
 
     console.log(
       "✅ Propiedades cargadas"
@@ -94,6 +105,9 @@ function getPropertyFromMessage(
   const text =
     message.toLowerCase();
 
+  // ======================
+  // 🔎 BUSQUEDA EXACTA
+  // ======================
   for (
     const property of PROPERTIES
   ) {
@@ -122,6 +136,25 @@ function getPropertyFromMessage(
         return property;
       }
     }
+  }
+
+  // ======================
+  // 🧠 FUZZY SEARCH
+  // ======================
+  const results =
+    fuse.search(text);
+
+  if (
+    results.length > 0 &&
+    results[0].score < 0.4
+  ) {
+
+    console.log(
+      "🧠 Coincidencia fuzzy:",
+      results[0].item.name
+    );
+
+    return results[0].item;
   }
 
   return null;
