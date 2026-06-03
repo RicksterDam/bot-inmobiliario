@@ -98,12 +98,31 @@ fs.watchFile(
 // ======================
 // 🧠 DETECTAR PROPIEDAD
 // ======================
+function normalizeText(text) {
+
+  return text
+    .toLowerCase()
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .replace(/[^\w\s]/gi, " ")
+    .replace(/\s+/g, " ")
+    .trim();
+}
+
+// ======================
+// 🧠 DETECTAR PROPIEDAD
+// ======================
 function getPropertyFromMessage(
   message
 ) {
 
   const text =
-    message.toLowerCase();
+    normalizeText(message);
+
+  console.log(
+    "🔎 Buscando propiedad:",
+    text
+  );
 
   // ======================
   // 🔎 BUSQUEDA EXACTA
@@ -112,26 +131,46 @@ function getPropertyFromMessage(
     const property of PROPERTIES
   ) {
 
-    // detectar nombre
+    // nombre completo
+    const propertyName =
+      normalizeText(
+        property.name
+      );
+
     if (
       text.includes(
-        property.name.toLowerCase()
+        propertyName
       )
     ) {
+
+      console.log(
+        "✅ Coincidencia exacta:",
+        property.name
+      );
 
       return property;
     }
 
-    // detectar keywords
+    // keywords
     for (
       const keyword of property.keywords || []
     ) {
 
+      const normalizedKeyword =
+        normalizeText(
+          keyword
+        );
+
       if (
         text.includes(
-          keyword.toLowerCase()
+          normalizedKeyword
         )
       ) {
+
+        console.log(
+          "✅ Keyword encontrada:",
+          keyword
+        );
 
         return property;
       }
@@ -141,20 +180,35 @@ function getPropertyFromMessage(
   // ======================
   // 🧠 FUZZY SEARCH
   // ======================
-  const results =
-    fuse.search(text);
+  try {
 
-  if (
-    results.length > 0 &&
-    results[0].score < 0.4
-  ) {
+    const results =
+      fuse.search(text);
 
     console.log(
-      "🧠 Coincidencia fuzzy:",
-      results[0].item.name
+      "🧠 Resultados fuzzy:",
+      results.slice(0, 3)
     );
 
-    return results[0].item;
+    if (
+      results.length > 0 &&
+      results[0].score <= 0.6
+    ) {
+
+      console.log(
+        "🧠 Coincidencia fuzzy:",
+        results[0].item.name
+      );
+
+      return results[0].item;
+    }
+
+  } catch (error) {
+
+    console.log(
+      "❌ Error Fuse:",
+      error.message
+    );
   }
 
   return null;
